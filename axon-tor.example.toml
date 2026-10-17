@@ -1,0 +1,6 @@
+# Copy this file, adjust it and run `axon-tor FILE`.
+
+# Point programs at one or both proxies. Names under .onion reach onion
+# services; other hosts go through exit relays.
+socks = "127.0.0.1:9150"
+http_proxy = "127.0.0.1:8118"

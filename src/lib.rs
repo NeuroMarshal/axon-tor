@@ -4,12 +4,14 @@
 //! its links speak Tor's link protocol through Axon's foreign wire layer,
 //! and the runtime drives it like any other node. It downloads and checks
 //! the consensus, builds circuits through relays and opens streams through
-//! exits and to onion services.
+//! exits and to onion services, for local programs behind SOCKS5 or an HTTP
+//! proxy.
 
 pub mod cell;
 pub mod cert;
 pub mod client;
 pub mod crypto;
+pub mod daemon;
 pub mod directory;
 pub mod link;
 pub mod ntor;
