@@ -1,0 +1,28 @@
+[package]
+name = "axon-tor"
+description = "A Tor client built on Axon that joins the real Tor network"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/NeuroMarshal/axon-tor"
+publish = false
+
+[dependencies]
+# Axon is not on crates.io yet; clone it next to this repository.
+axon-core = { path = "../axon" }
+axon-addons = { path = "../axon/addons" }
+axon-runtime = { path = "../axon/runtime", features = ["https"] }
+bytes = "1.12.1"
+tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "time", "sync", "net", "io-util", "signal"] }
+getrandom = "0.2.17"
+data-encoding = "2.11"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+sha1 = "0.10"
+aes = "0.8"
+ctr = "0.9"
+num-bigint = "0.4"
+curve25519-dalek = "4.1"
+miniz_oxide = "0.8"
