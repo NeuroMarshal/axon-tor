@@ -201,3 +201,106 @@ async fn fetch(
         }
     }
 }
+
+mod client_live {
+    use std::time::Duration;
+
+    use axon_tor::client::TorClient;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    /// Bootstraps from the authorities and loads a page through a
+    /// three-hop circuit to an exit.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    #[ignore = "needs the real Tor network"]
+    async fn a_page_loads_through_an_exit() {
+        let client = TorClient::start().unwrap();
+        let started = std::time::Instant::now();
+        let directory = match client.bootstrap().await {
+            Ok(directory) => directory,
+            Err(error) => {
+                for line in client.with_plane(|plane| plane.take_trace()).await.unwrap() {
+                    println!("  {line}");
+                }
+                panic!("{error}");
+            }
+        };
+        println!(
+            "bootstrapped in {:?}: {} relays, {} microdescriptors",
+            started.elapsed(),
+            directory.consensus.relays.len(),
+            directory.microdescriptors.len()
+        );
+        let started = std::time::Instant::now();
+        let mut stream = match client
+            .connect("www.torproject.org", 80, Duration::from_secs(120))
+            .await
+        {
+            Ok(stream) => stream,
+            Err(error) => {
+                for line in client.with_plane(|plane| plane.take_trace()).await.unwrap() {
+                    println!("  {line}");
+                }
+                panic!("{error}");
+            }
+        };
+        println!("connected in {:?}", started.elapsed());
+        stream
+            .write_all(b"GET / HTTP/1.0\r\nHost: www.torproject.org\r\n\r\n")
+            .await
+            .unwrap();
+        let mut page = Vec::new();
+        tokio::time::timeout(Duration::from_secs(60), stream.read_to_end(&mut page))
+            .await
+            .unwrap()
+            .unwrap();
+        let text = String::from_utf8_lossy(&page);
+        println!("{}", text.lines().take(6).collect::<Vec<_>>().join("\n"));
+        assert!(text.starts_with("HTTP/1."));
+    }
+}
+
+mod onion_live {
+    use std::time::Duration;
+
+    use axon_tor::client::TorClient;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    /// The Tor Project's onion site.
+    const TOR_PROJECT: &str = "2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion";
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    #[ignore = "needs the real Tor network"]
+    async fn an_onion_site_loads() {
+        let client = TorClient::start().unwrap();
+        client.bootstrap().await.unwrap();
+        let started = std::time::Instant::now();
+        let host = std::env::var("ONION").unwrap_or_else(|_| TOR_PROJECT.to_owned());
+        let mut stream = match client
+            .connect_onion(&host, 80, Duration::from_secs(180))
+            .await
+        {
+            Ok(stream) => stream,
+            Err(error) => {
+                for line in client.with_plane(|plane| plane.take_trace()).await.unwrap() {
+                    println!("  {line}");
+                }
+                panic!("{error}");
+            }
+        };
+        println!("rendezvous in {:?}", started.elapsed());
+        let request = format!("GET / HTTP/1.0\r\nHost: {host}\r\n\r\n");
+        stream.write_all(request.as_bytes()).await.unwrap();
+        let mut page = Vec::new();
+        tokio::time::timeout(Duration::from_secs(60), stream.read_to_end(&mut page))
+            .await
+            .unwrap()
+            .unwrap();
+        let text = String::from_utf8_lossy(&page);
+        println!(
+            "{} bytes\n{}",
+            page.len(),
+            text.lines().take(5).collect::<Vec<_>>().join("\n")
+        );
+        assert!(text.starts_with("HTTP/1."));
+    }
+}

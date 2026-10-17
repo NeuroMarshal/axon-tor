@@ -1,14 +1,20 @@
-//! Tor's cells, link protocol and directory, written for an Axon node: cells
-//! and relay messages, Ed25519 and RSA certificates, relay crypto, the ntor
-//! handshake, TLS links that check a relay's identities, and the
-//! microdescriptor consensus with its authority signatures.
+//! A Tor client built on Axon that works in the real Tor network.
+//!
+//! The client is an Axon node: [`plane::TorPlane`] is its forwarding plane,
+//! its links speak Tor's link protocol through Axon's foreign wire layer,
+//! and the runtime drives it like any other node. It downloads and checks
+//! the consensus, builds circuits through relays and opens streams through
+//! exits and to onion services.
 
 pub mod cell;
 pub mod cert;
+pub mod client;
 pub mod crypto;
 pub mod directory;
 pub mod link;
 pub mod ntor;
+pub mod onion;
+pub mod plane;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
